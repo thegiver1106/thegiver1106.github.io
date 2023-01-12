@@ -1,0 +1,289 @@
+<!DOCTYPE HTML>
+<!--
+	Strata by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+
+<head>
+	<title>Computer Vision</title>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+	<link rel="stylesheet" href="assets/css/main.css" />
+</head>
+
+<body class="is-preload">
+	<!-- Header -->
+	<header id="header">
+
+		<div class="inner">
+			<a href="#" class="images avatar"><img src="images/zaizhong.png" alt="" /></a>
+			<h2><strong>Notes for CV<strong></h2>
+			<h1>Reference book: Python 计算机视觉，Jan Erik Solem, POETS&TELECOM PRESS</h1>
+			<h1 class="backtohomepage"><strong><a href="index.html">Back to homepage<strong></a></h1>
+			<a href="#one">RANSAC</a><br>
+			<a href="#two">单应性变换</a><br>
+			<a href="#three">Harris角点检测</a><br>
+			<a href="#four">SIFT</a><br>
+			<a href="#five">PCA</a><br>
+			<a href="#six">图像模糊与图像导数</a><br>
+			<a href="#seven">图像去噪</a><br>
+		</div>
+	</header>
+
+	<!-- Main -->
+	<div id="main_1">
+
+		<!-- One -->
+		<section id="one">
+			<header class="major">
+				<h2>1.RANSAC<br />
+			</header>
+			<p>Random sample consensus (随机一致采样) 是一种可舍弃重大误差点的线性拟合方法。
+				与之形成对比的是简单的最小二乘法，最小二乘法的方法是先考虑所有数据拟合直线，然后舍弃误差较大的点
+				再拟合直线，通过如上步骤多次迭代完成拟合。如图：
+			</p>
+			<img src="CV assets/least square method.png"></img>
+			<p>RANSAC采取与之相反的策略，即首先选取较少的点作为准确数据点作图，如圆即挑选三个点来确定。
+				然后通过内点数量判定来筛选鉴定所选的准确数据点是否可靠，具体方法如下：
+			</p>
+			<img src="CV assets/RANSAC.png" width="500"></img>
+			<p>P79-P81给出了用RANSAC算法拟合计算单应性矩阵的例子，首先用SIFT特征寻找匹配对应点对，其中每四个点对可
+				确定一个单应性矩阵，通过对每个点应用该单应性矩阵，计算出每个点对关于特定单应性矩阵的误差值。</br> </br>
+				<a href="https://www.bilibili.com/video/BV1n441147kH/?spm_id_from=333.999.0.0">RANSAC算法讲解</a>
+			</p>
+		</section>
+		<section id="two">
+			<header class="major">
+				<h2>2.单应性变换<br />
+			</header>
+			<p>单应性变换是将一个平面内的点映射到另一个平面的二维投影变换，通常意义上讲即为：
+			</p>
+			<img src="CV assets/homography1.png" width="200"></img>
+			<p>将坐标齐次化后(w坐标归一为1)，可知单应性矩阵具有8个自由度</p>
+			<img src="CV assets/homo2.png" width="200"></img>
+			<p>
+				实际上，单应性转换可以理解成对物空间某点投影到不同像面后，在不同像面间的坐标转换。
+				如下图，对物空间某点X，从两个方向投影到两个像面m & m'，单应性矩阵用来描述m->m'的
+				坐标转换。换而言之，如果我们知道某物空间的侧视图，和该物空间侧视图与鸟瞰图之间的单应性
+				变换矩阵，我们就可以推得该物空间的鸟瞰图。
+			</p>
+			<img src="CV assets/homo3.png" width="200"></img>
+			<p>通过DLT(直接线性变换)，我们需要至少两幅图像的4个对应点对来确定它们之间的单应性矩阵。
+				一般来讲，我们得到的对应点对会远多于4个，我们既可以用SVD算法找到H的最小二乘解(P59-P60)，也可以用
+				上文提到的RANSAC方法找到H，在实际情况中后者要优于前者。</br></br>
+				<a href="https://www.bilibili.com/video/BV1re4y1b7F6/?spm_id_from=333.999.0.0">单应性矩阵讲解</a>
+			</p>
+			<header>
+				<h2>2.1图像扭曲<br />
+			</header>
+			<p>
+				仿射变换是单应性变换的一种特例，可应用于图像扭曲。
+			</p>
+			<img src="CV assets/homo4.png" title="A为可逆矩阵，t为平移向量，6个自由度" width="300"></img>
+			<p>
+				因为仿射变换只有6个自由度，我们只需要三个对应点就可以得到矩阵H。P61介绍了
+				如何计算两幅图像间仿射变换的步骤。至于图像扭曲的操作，可以直接使用宏包中的函数，
+				详见P62。</br>
+				在图像插入的操作中，我们需要使用分段仿射扭曲，即对图片进行三角剖分后再仿射插入。
+				这是因为仿射变换是由三个对应点推出的，如果图像的凸角大于三个，那么其余的凸角位置
+				就不可避免产生偏差。在有很强透视效应的情况下，直接仿射变换效果不佳。P67-P70介绍了
+				狄洛克三角剖分法的应用。
+			</p>
+			<header>
+				<h2>2.2图像配准<br />
+			</header>
+			<p>
+				相似变换是单应性变换的一种特例，是带有尺度变换的刚体变换，可应用于图像配准。
+			</p>
+			<img src="CV assets/homo5.png" title="R为旋转矩阵，t为平移向量，4个自由度" width="400"></img>
+			<p>
+				P70-P75给出了图像配准的例子，首先锁定每幅图像中人眼、鼻子、嘴的位置，确定这些特征点将要投影的位置，
+				从而得出对应的相似变换矩阵，最后完成对每个像素点的操作。
+			</p>
+
+		</section>
+
+		<section id="three">
+			<header class="major">
+				<h2>3.Harris角点检测<br />
+			</header>
+			<p>
+				Harris角点检测的主要思想是，如果像素周围显示存在多于一个方向的边，就将它定义为角点。
+				<a
+					href="https://www.bilibili.com/video/BV1sg411Y74L/?spm_id_from=333.999.0.0&vd_source=49176574c1d106f4ef4d10d211b2bb62">Harris角点检测算法</a>
+			</p>
+			<img src="CV assets/Harris.png" width="300"></img>
+			<img src="CV assets/Harris1.png" title="卷积解即为Harris矩阵" width="400"></img>
+			<p>Harris矩阵实际上包含了像素点及其周边区域像素的信息。作卷积的目的是得到M<sub>i</sub>在周围像素上的局部平均，相当于用这个点的局部平均来表征像素点的梯度信息。代码见P32-P33。</p>
+			<img src="CV assets/Harris2.png" title="Lamda为Harris矩阵的特征值" width="500"></img>
+			<p>兴趣点描述子是分配给兴趣点的一个向量，描述该点附近的图像的表观信息。我们可以通过比较兴趣点描述子，来匹配不同图像间的兴趣点。
+				对于Harris角点，它的描述子由周围矩形图像像素块，以及归一化互相关矩阵构成。</br>
+				<img src="CV assets/Harris3.png" title="f(I1, I2)=I1*I2" width="400"></img>
+				<img src="CV assets/Harris4.png" width="500"></img>
+				</br>
+				之后比较两幅图中的兴趣点描述子来确定匹配点，具体操作见P35-P39。
+			</p>
+		</section>
+		<section id="four">
+			<header class="major">
+				<h2>4.SIFT尺度不变特征变换<br />
+			</header>
+			<p>
+				SIFT相较Harris的优点在于，它对尺度、旋转、亮度都有不变性，因此它的匹配更加可靠。<br>
+				SIFT主要包括四个步骤：<br>
+				<font color="green">1.尺度空间极值检测</font><br>
+				首先，我们知道图像模糊就是用高斯核对原图像作卷积:
+				<img src="CV assets/SIFT.png" width="200"></img><br>
+				然后我们构建图像的高斯金字塔，即将图片处理成不同尺寸，同一尺寸下用不同尺度的高斯核
+				进行图像模糊，之后我们对相邻的模糊图片作差得到高斯差分，兴趣点就是高斯差分的最大值和最小值。<br>
+				<img src="CV assets/SIFT1.png" title="高斯差分函数" width="300"></img>
+				<img src="CV assets/SIFT2.png" title="不同尺寸的图像金字塔及不同尺度的高斯差分" width="300"></img>
+			</p>
+			<p>
+				<font color="green">2.关键点定位</font><br>
+				将低对比度和边界的关键点去除，得到的就是我们的关键点。<br>
+				低对比度点即为噪声，它的灰度值会小于阈值。<br>
+				如果垂直边缘方向梯度与平行边缘方向梯度的比值大于阈值(边界阈值)，则判定为边界点。<br>
+			</p>
+			<p>
+				<font color="green">3.关键点描述子</font><br>
+				首先将图像梯度最大的方向作为主方向，然后以关键点为中心，主方向为旋转方向构建4x4区域网络。
+				每个子区域再使用8个小区间的方向直方图，最后拼接总共4x4x8=128个直方图作为该关键点的描述子。如图：
+				<img src="CV assets/SIFT3.png" width="500"></img>
+			</p>
+			<p>
+				<font color="green">4.描述子匹配</font><br>
+				我们以描述子向量间的夹角为距离度量，考察两个特征距离和两个最匹配特征距离的比率。具体见P43-P44。
+				<br>
+				<a
+					href="https://www.bilibili.com/video/BV1oh411x7cf/?spm_id_from=333.788&vd_source=49176574c1d106f4ef4d10d211b2bb62">SIFT算法讲解</a>
+			</p>
+		</section>
+		<section id="five">
+			<header class="major">
+				<h2>5.PCA<br />
+			</header>
+			<p>
+				Principle Component Analysis 主成分分析是一种降维技巧。PCA的目的就是找到一个新的坐标系，让点坐标投影到这个新的坐标系。一个好的坐标系
+				能保留最多的信息。一种计算主成分的方法是SVD分解，这里我们先介绍一种更先进的方法。
+			</p>
+			<p>
+				<img src="CV assets/PCA.png" width="500"></img><br>
+				白数据是指均值为0，方差为1且x、y轴互不相关的标准数据。我们手头上的D'数据可由白数据拉伸、旋转后得到。
+				同理，我们手头上的数据可以通过旋转、缩短的逆操作得到白数据，这里的旋转逆矩阵就是我们要求的主方向的旋转方向,也就是我们要求的
+				新的坐标系。<br>
+				<img src="CV assets/PCA1.png" width="500"></img><br>
+			</p>
+			<p>
+				引入概念协方差，协方差用来表示两个变量在变化过程中的变化方向(同向还是反向?)，以及同向或反向的程度。<br>
+				<img src="CV assets/协方差1.png" width="300"></img><br>
+				数据中心化后，协方差可表示为：<br>
+				<img src="CV assets/协方差2.png" width="250"></img><br>
+				我们可以表示出协方差矩阵<br>
+				<img src="CV assets/协方差3.png" width="300"><br>
+				进一步对协方差矩阵化简，得到：<br>
+				<img src="CV assets/协方差4.png" width="300"> <br>
+				通过一系列刺激的数学分析，得到协方差矩阵的特征向量就是坐标轴方向(旋转方向)，协方差矩阵的
+				特征值就是坐标轴方向的方差(拉伸).数学运算详见
+				<a
+					href="https://www.bilibili.com/video/BV1E5411E71z/?spm_id_from=333.999.0.0&vd_source=49176574c1d106f4ef4d10d211b2bb62">Video</a>
+				，具体代码操作见P14。
+			</p>
+			<p>
+				补充SVD方法，对任何矩阵M,我们都可以将其作如下分解<br>
+				<img src="CV assets/SVD1.png" width="350"><br>
+				进一步，我们可以通过M直接得到U、V:<br>
+				<img src="CV assets/SVD2.png" width="250"><br>
+				其中V就是M的协方差矩阵的特征向量，是PCA主成分的方向。<br>
+				<a
+					href="https://www.bilibili.com/video/BV16A411T7zX/?spm_id_from=333.788&vd_source=49176574c1d106f4ef4d10d211b2bb62">SVD奇异值分解</a>
+			</p>
+		</section>
+		<section id="six">
+			<header class="major">
+				<h2>6.图像模糊与图像导数<br />
+			</header>
+			<p>
+			<header>
+				<h2>6.1图像模糊<br />
+			</header>
+			图像模糊就是将灰度图像I和一个高斯核作卷积操作，二维高斯核定义为：<br>
+			<img src="CV assets/高斯核.png" width="200"><br>
+			卷积得到高斯模糊：
+			<img src="CV assets/高斯卷积.png" width="100"><br>
+			详见P18。<br>
+			</p>
+			<p>
+			<header>
+				<h2>6.2图像导数<br />
+			</header>
+			图像导数表示图像强度的变化，同样是通过卷积来实现。常见的卷积核有：<br>
+			<img src="CV assets/prewitt.png" width="200" title="Prewitt滤波器"><br>
+			<img src="CV assets/sobel.png" width="200" title="Sobel滤波器"><br>
+			<img src="CV assets/图像导数.png" width="200"><br>
+			一个更好的选择是使用高斯导数滤波器，它可以在任意尺度上计算导数：<br>
+			<img src="CV assets/高斯滤波器.png" width="500"><br>
+			</p>
+		</section>
+		<section id="seven">
+			<header class="major">
+				<h2>7.图像去噪<br />
+			</header>
+			图像噪声十分常见，且会严重影响视觉效果和图像处理。常见的图像噪声有椒盐噪声和高斯噪声等。去噪是必不可少的预处理措施。
+			<p>
+			<header>
+				<h2>7.1均值滤波<br />
+			</header>
+			均值滤波是一种最简单的处理方式，即用周围像素的平均值来代替特定像素。严谨的说法是，用卷积框覆盖区域所有像素的平均值来代替中心像素:<br>
+			<img src="CV assets/平均过滤器.png" width="150" title="均值滤波器"><br>
+			这种方法在去噪的同时，舍弃了很多细节部分，使图像模糊。
+			</p>
+			<p>
+			<header>
+				<h2>7.2高斯滤波<br />
+			</header>
+			高斯去噪实际上和高斯模糊的本质一样，细则如下：<br>
+			<img src="CV assets/高斯1.png" width="400"><br>
+			然后引入高斯核：<img src="CV assets/高斯核.png" width="200"><br>
+			<img src="CV assets/高斯2.png" width="400"><br>
+			对权重矩阵归一化，即让和为1：<br>
+			<img src="CV assets/高斯3.png" width="400"><br>
+			<img src="CV assets/高斯4.png" width="400"><br>
+			对像素图作高斯核卷积<br> 
+			<img src="CV assets/高斯5.png" width="400"><br>
+			所有值的和就是新的像素点。<br>
+			本质上高斯去噪和高斯模糊是一样的，都是用像素图与高斯核做卷积。无非在高斯去噪时，
+			我们对高斯核作了权重矩阵和归一化处理，然后再进行卷积。<br>
+			<a
+				href="https://www.bilibili.com/video/BV1H44y1Y7Bi/?spm_id_from=333.788&vd_source=49176574c1d106f4ef4d10d211b2bb62">高斯滤波算法</a>
+			</p>
+		</section>
+	</div>
+
+	<!-- Footer -->
+	<footer id="footer">
+		<div class="inner">
+			<ul class="icons">
+				<li><a href="https://github.com/thegiver1106" class="icon brands fa-github"><span
+							class="label">Github</span></a></li>
+				<li><a href="2157004976@qq.com" class="icon brands fa-qq"><span class="label">Dribbble</span></a></li>
+				<li><a href="gth2002@sjtu.edu.cn" class="icon solid fa-envelope"><span class="label">Email</span></a>
+				</li>
+			</ul>
+			<b>Contact and learn me more</b>
+		</div>
+	</footer>
+
+	<!-- Scripts -->
+	<script src="assets/js/jquery.min.js"></script>
+	<script src="assets/js/jquery.poptrox.min.js"></script>
+	<script src="assets/js/browser.min.js"></script>
+	<script src="assets/js/breakpoints.min.js"></script>
+	<script src="assets/js/util.js"></script>
+	<script src="assets/js/main.js"></script>
+
+</body>
+
+</html>
