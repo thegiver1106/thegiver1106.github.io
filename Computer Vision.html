@@ -29,6 +29,9 @@
 			<a href="#five">PCA</a><br>
 			<a href="#six">图像模糊与图像导数</a><br>
 			<a href="#seven">图像去噪</a><br>
+			<a href="#eight">三维重建</a><br>
+			<a href="#nine">图像聚类</a><br>
+			<a href="#ten">图像内容分类</a><br>
 		</div>
 	</header>
 
@@ -258,6 +261,123 @@
 			我们对高斯核作了权重矩阵和归一化处理，然后再进行卷积。<br>
 			<a
 				href="https://www.bilibili.com/video/BV1H44y1Y7Bi/?spm_id_from=333.788&vd_source=49176574c1d106f4ef4d10d211b2bb62">高斯滤波算法</a>
+			</p>
+		</section>
+		<section id="eight">
+			<header class="major">
+				<h2>8.三维重建<br />
+			</header>
+			<p>
+				假设照相机已经标定，计算重建可以分为以下四个步骤：<br>
+				1.检测与匹配特征点<br>
+				2.由匹配点计算基础矩阵<br>
+				3.由基础矩阵计算照相机矩阵<br>
+				4.三角剖分这些三维点<br>
+			</p>
+			<header>
+				<h2>8.1照相机矩阵<br />
+			</header>
+			<p>
+				首先，照相机投影矩阵P可以将一个三维坐标转换成图像中的二维坐标：
+				<img src="CV assets/三维1.png" width="100"><br>
+				该投影矩阵P可表示为：
+				<img src="CV assets/三维2.png" width="100"><br>
+				其中R表示照相机的旋转方向，t表示照相机中心位置的三维平移向量，K为内标定矩阵——属于照相机的自身属性。<br>
+				我们可以通过一些方法来标定照相机(即计算矩阵K)，只有在知道照相机内参(K)的情况下，我们才能进行三维重建。<br>
+			<header>
+				<h2>8.2外极几何<br />
+			</header>
+			<p>
+				首先考虑双视图几何，规定原点和坐标轴与第一个照相机对齐，则对两个照相机有：
+				<img src="CV assets/外极1.png" width="300"><br>
+				对同一个三维点X,我们可以在两幅图像中找到对应的投影点x1,x2。其中x1,x2必然满足外极约束条件：
+				<img src="CV assets/外极2.png" width="100"><br>
+				其中，F为基础矩阵:
+				<img src="CV assets/外极3.png" width="150">
+				它的值由K1,K2,R,t四个量决定。<br>
+				也就是说，我们可以通过寻找图像中的对应点，来确定F的值。如果我们进一步知道照相机参数K1和K2,
+				我们可以得出R和t，从而在三维重建中得到距离和角度。<br>
+				实际上，基础矩阵F的作用在于，如果我们确定一幅图像中的一个点x2，那么
+				我们可以通过F和x2确定x1在第一幅图像中的一条直线上，该直线称为外极线。<br>
+				由外极约束条件，我们推得：
+				<img src="CV assets/外极4.png" width="200"><br>
+				x1必在l1上，也就是说x2在第一幅图像中的对应点一定在l1上，l1即为x2的外极线。<br>
+				<img src="CV assets/外极5.png" width="400" title="e为外极点，外极点是另一个照相机光心对应的图像点"><br>
+				需要注意的是，外极点实际上是在所有的外极线上。即对e<sub>1</sub>，同时满足x<sub>2</sub><sup>T</sup>Fe<sub>1</sub>=0和x<sub>1</sub><sup>T</sup>Fe<sub>1</sub>=0,
+				则必有Fe<sub>1</sub>=0。因此，我们可以通过计算F的零向量来计算外极点。另一个外极点可以通过e<SUB>2</SUB><SUP>T</SUP>F=0得到。
+			</p>
+			<header>
+				<h2>8.3计算F，外极点与外极线<br />
+			</header>
+			<p>
+				F共有九个元素，考虑到尺度是任意的，所以只需要八个方程，即八个对应点。SVD最小二乘解法具体代码见P112-P113。更稳健的RANSAC方法具体代码见P123-P125。<br>
+				由外极几何的知识，我们可以通过F计算出两个外极点，我们还可以根据已知的匹配点，画出对应的外极线。<br>
+			</p>
+			<header>
+				<h2>8.4由基础矩阵计算照相机矩阵<br />
+			</header>
+			<p>
+				假设第一个矩阵归一化为P<sub>1</sub>=[I|0]<br>
+				如果照相机未标定，只能通过射影变换得到第二个照相机矩阵，导致最终的三角形剖分发生畸变。<br>
+				如果照相机已标定，重建可以保持度量特性，我们需要从可能的四个解中挑选正解。<br>
+			</p>
+			</p>
+		</section>
+		<section id="nine">
+			<header class="major">
+				<h2>9.图像聚类<br />
+			</header>
+			<p>
+				聚类是一种非监督式学习，其分类标准由数据本身决定，聚类标准在得到数据之前也是不存在的。
+			</p>
+			<header>
+				<h2>9.1层次聚类<br />
+			</header>
+			<p>
+				层次聚类基于样本间成对的距离构建相似树。首先找到样本数据中距离最近的两个数据，将他们的平均值作为新的节点替代原来的两个点。
+				然后在新的数据中找到距离最近的两个点，重复上述步骤。在遍历过程中，我们通过设定阈值来终止遍历，当最近的两个数据的距离大于阈值时，
+				终止遍历。<br>
+				<img src="CV assets/cengci.png" width="200">
+			</p>
+			<header>
+				<h2>9.2 K-means聚类<br />
+			</header>
+			<p>
+				与层次聚类设定阈值不同的是，K-means聚类设定具体将数据划分为多少簇。步骤如下：<br>
+				<img src="CV assets/K-means.png" width="400"><br>
+			</p>
+		</section>
+		<section id="ten">
+			<header class="major">
+				<h2>10.图像内容分类<br />
+			</header>
+			<header>
+				<h2>10.1 K邻近分类法<br />
+			</header>
+			<p>
+				KNN算法是最简单的一种归类方法。首先计算未知实例与所有已知实例间的距离，然后设定K值，选择
+				与未知实例距离最近的K个已知实例，最后根据少数服从多数原则来归类未知实例。<br>
+				KNN适用于没有任何明确模型的类分布。
+			</p>
+			<header>
+				<h2>10.2 贝叶斯分类器<br />
+			</header>
+			<p>
+				朴素贝叶斯分类器是一种基于
+				<a
+					href="https://www.bilibili.com/video/BV1S4411q7nX/?spm_id_from=333.880.my_history.page.click&vd_source=49176574c1d106f4ef4d10d211b2bb62">贝叶斯条件概率定理</a>
+				的概率分类器。它基于的假设是实例的各个特征彼此独立不相关。<br>
+				贝叶斯分类器首先通过已知数据的特征和对应实例的分类来建立模型，一旦完成模型，就只需存储模型的参数。<br>
+				本质上来讲，该分类器通过将各个特征的条件概率相乘 (假设特征相互独立)，得到一个分类的总概率，最后选取概率最高的那个类别。需要注意的是，不同类的概率与各个特征的条件概率的
+				乘积成正比，所以我们只比较特征的条件概率乘积。
+				<a
+					href="https://www.bilibili.com/video/BV1eT411V7jM/?spm_id_from=333.880.my_history.page.click&vd_source=49176574c1d106f4ef4d10d211b2bb62">朴素贝叶斯例子</a><br>
+			</p>
+			<header>
+				<h2>10.3 支持向量机SVM<br />
+			</header>
+			<p>
+				SVM就是在高维平面中寻找一个最优的线性分割，从而完成分类。
 			</p>
 		</section>
 	</div>
